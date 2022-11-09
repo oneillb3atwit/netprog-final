@@ -9,14 +9,14 @@ def game_loop(conn):
     while True:
         data, addr = conn.recvfrom(1024)
         if data == None: break
-
         data = str(data)[2:-1]
+
         if data == "new":
             print('client connected')
             add_client(conn, addr)
             continue
 
-        print(data)
+        print('>' + str(addr) + ": " + data)
         data = json.loads(data)
 
         k = data['keys']
@@ -30,12 +30,18 @@ def game_loop(conn):
             p.y += 1
         if 'D' in k:
             p.x += 1
-        conn.sendto(bytes(json.dumps({'player': p.get_json()}), encoding="utf8"), addr)
+
+        players_json = []
+        for pl in players:
+            players_json.append(pl[0].get_json())
+
+        conn.sendto(bytes(json.dumps({'players': players_json}), encoding="utf8"), addr)
+        print('<' + str(addr) + ': ' + str(data))
 
     conn.close()
 
 def add_client(conn, addr):
-    p = Player(len(players), 0, 0)
+    p = Player({ 'id': len(players), 'x': 0, 'y': 0 })
     players.append((p, addr))
     conn.sendto(bytes(json.dumps(p.get_json()), encoding='utf8'), addr)
 

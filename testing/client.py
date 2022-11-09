@@ -4,7 +4,8 @@ from game import *
 HOST = 'localhost'
 PORT = 8000
 
-player = None
+players = []
+player_id = None
 
 def update():
     keys = pygame.key.get_pressed()
@@ -23,14 +24,21 @@ def update():
 
     recv_data, addr = s.recvfrom(1024)
     if not recv_data: return
-    recv_data = str(recv_data)[2:-1]
-    player.update(recv_data)
+    recv_data = json.loads(str(recv_data)[2:-1])
+
+    for d in recv_data['players']:
+        for p in players:
+            if p.id == d['id']:
+                p.update(d)
+                continue
+        players.append(Player(d))
 
 def draw():
-    imgrect.x = player.x
-    imgrect.y = player.y
     screen.fill((0,0,0))
-    screen.blit(img, imgrect)
+    for p in players:
+        imgrect.x = p.x
+        imgrect.y = p.y
+        screen.blit(img, imgrect)
     pygame.display.flip()
 
 def player_init(s):
@@ -40,7 +48,7 @@ def player_init(s):
         print("failed to connect to server")
         sys.exit()
     data = json.loads(str(data)[2:-1])
-    return Player(data['id'], data['x'], data['y'])
+    return Player(data)
 
 
 # pygame initialization
@@ -58,6 +66,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         sys.exit()
     else:
         print('client initialized')
+    players.append(player)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
