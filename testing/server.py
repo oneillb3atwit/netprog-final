@@ -1,39 +1,53 @@
-import socket
-import threading
+import socket, json, pygame
+from _thread import *
+from game import *
 
-HOST = 'localhost'
-PORT = 8001
-listening = False
+def game_loop(conn):
+    while True:
+        # handle connections
+        data, addr = conn.recvfrom(1024)
+        if data == None: break
+        data = str(data)[2:-1]
+        if data == CLIENT_CONNECT_MESSAGE:
+            print('client connected')
+            add_client(conn, addr)
+            continue
 
-cur_data = ""
+        data = json.loads(data)
+        keys = data['keys']
+        player = players[data['player']['id']]
+        addr = players[data['player']['id']].addr
 
-class player:
-    player_id = 0
-    x = 0
-    y = 0
-    def __init__(self, id):
-        self.id = id
+        handle_keys(player, keys)
+        ball.move()
 
-def clientThread(connection, player):
-    conn.send(bytes(player_count))
-    while listening:
-        data = conn.recv(1024)
-        if not data: break
-        conn.send(data)
-        #for player in players:
-         #   conn.send(bytes('{"x": ' + str(x) + '}', encoding='utf8'))
+        players_json = []
+        for p in players:
+            players_json.append(p.get_json())
+        conn.sendto(bytes(json.dumps({'players': players_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
 
-players = []
+    conn.close()
 
-x = 0
-y = 0
+def add_client(conn, addr):
+    p = Player({ 'id': len(players), 'x': 0, 'y': 0, 'team': (len(players) % 2) })
+    p.addr = addr
+    players.append(p)
+    pjson = p.get_json()
+    conn.sendto(bytes(json.dumps(pjson), encoding='utf8'), addr)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((HOST, PORT))
-s.listen(1)
-listening = True
-player_count = 0
-while listening:
-    conn, addr = s.accept()
-    threading.Thread(target=clientThread(conn, player_count)).start()
-    player_count += 1
+def handle_keys(player, keys):
+    if 'W' in keys:
+        player.move(0, -1)
+    if 'A' in keys:
+        player.move(-1, 0)
+    if 'S' in keys:
+        player.move(0, 1)
+    if 'D' in keys:
+        player.move(1, 0)
+
+ball = Ball()
+
+# bind UDP socket and begin game loop
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    s.bind((HOST, PORT))
+    game_loop(s)

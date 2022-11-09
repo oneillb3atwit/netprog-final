@@ -1,93 +1,85 @@
 import sys, pygame, socket, json
+from game import *
 
-## NET INIT
-# server side
-HOST = sys.argv[1]
-PORT = 8001
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+players = []
+player_id = None
 
-send_pos = (0,0)
-delay = 3 # 3 frame delay for now, will experiment with
-recv_json = []
+player_img = pygame.image.load('player.png')
+player_img_rect = player_img.get_rect()
 
-# client side
-player_num = 0
-client_pos = (0,0)
-frame_num = 0
-game_playing = True
+ball_img = pygame.image.load('ball.png')
+ball_img_rect = ball_img.get_rect()
 
-## PYGAME INIT
-# pygame setup and file load
+def get_pressed_keys():
+    keys = pygame.key.get_pressed()
+    pressed = []
+    if keys[pygame.K_w]:
+        pressed.append('W')
+    if keys[pygame.K_a]:
+        pressed.append('A')
+    if keys[pygame.K_s]:
+        pressed.append('S')
+    if keys[pygame.K_d]:
+        pressed.append('D')
+    return pressed
+
+def update():
+    # send client data to server
+    send_data = { 'player': player.get_json(), 'keys': get_pressed_keys() }
+    s.sendto(bytes(json.dumps(send_data), 'utf-8'), (HOST, PORT))
+
+    recv_data, addr = s.recvfrom(1024)
+    if not recv_data: return
+    recv_data = json.loads(str(recv_data)[2:-1])
+
+    for d in recv_data['players']:
+        for p in players:
+            if p.id == d['id']:
+                p.update(d)
+                continue
+        players.append(Player(d))
+
+    ball.update(recv_data['ball'])
+
+def draw():
+    screen.fill((0,0,0))
+    for p in players:
+        player_img_rect.x = p.x
+        player_img_rect.y = p.y
+        screen.blit(player_img, player_img_rect)
+
+    ball_img_rect.x = ball.x
+    ball_img_rect.y = ball.y
+    screen.blit(ball_img, ball_img_rect)
+    pygame.display.flip()
+
+def initialize_client(s):
+    s.sendto(bytes(CLIENT_CONNECT_MESSAGE, 'utf-8'), (HOST, PORT))
+    data, addr = s.recvfrom(1024)
+    if not data:
+        print("failed to connect to server")
+        sys.exit()
+    data = json.loads(str(data)[2:-1])
+    return Player(data)
+
+# pygame initialization
 pygame.init()
-size = width, height = 320, 240
-black = 0, 0, 0
-screen = pygame.display.set_mode(size)
-img = pygame.image.load('img.png')
-imgrect = img.get_rect()
+screen = pygame.display.set_mode(WINSIZE)
 clock = pygame.time.Clock()
 
-## GAME FUNCTIONS
-# send attributes as json (change to really small bytes? tcp is slow)
-def send(x, y, frame):
-	to_send = ""
-	to_send += f"{{x: {x}}}"
-	to_send += f"{{y: {y}}}"
-	to_send += f"{{frame: {frame}}}"
+ball = Ball()
 
-	s.send(bytes(to_send))
-
-# draw 
-def draw():
-	screen.fill(black)
-	screen.blit(img, imgrect)
-	# for entity in entity list, entity.draw()
-
-# update
-def update():
-	parse_recv_json(frame_num)
-
-# input handling
-def handle_inputs(event):
-    if event.key == pygame.K_LEFT:
-        send_pos[0] -= 1
-    if event.key == pygame.K_RIGHT:
-        send_pos[0] += 1
-    if event.key == pygame.K_UP:
-        send_pos[1] -= 1
-    if event.key == pygame.K_DOWN:
-        send_pos[1] += 1
-
-def parse_recv_json(frame):
-	# this will read packet at frame time frame
-	jdata = recv_json[frame]
-	imgrect.x = jdata['x']
-	imgrect.y = jdata['y']
-
-# connect, should wrap into a function eventually and have host, port as arguments
-s.connect((HOST, PORT))
-player_num = int.from_bytes(s.recv(1024)) # receive player number
-
-# pygame loop
-while game_playing:
-	frame_num += 1 
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT: sys.exit()
-		if event.type == pygame.KEYDOWN: handle_inputs(event)
-
-	update()
-	draw()
-
-	## server code, run after update and draw
-	data = None
-	# send attributes    add player num 
-	send(send_pos[0], send_pos[1], frame_num+delay)
-
-	# receive attributes from other clients
-	data = s.recv(1024)
-	data = str(data)[2:-1]
-	jdata = json.loads(str(data))
-	recv_json.insert(frame_num + delay, jdata)
-	
-
-	pygame.display.flip()
-	clock.tick(60)
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    player = initialize_client(s)
+    if player == None:
+        print('failed to initialize client')
+        sys.exit()
+    else:
+        print('client initialized')
+    players.append(player)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: sys.exit()
+        update()
+        draw()
+        clock.tick(60)
