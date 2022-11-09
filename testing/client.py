@@ -1,13 +1,16 @@
 import sys, pygame, socket, json
 from game import *
 
-HOST = 'localhost'
-PORT = 8000
-
 players = []
 player_id = None
 
-def update():
+player_img = pygame.image.load('player.png')
+player_img_rect = player_img.get_rect()
+
+ball_img = pygame.image.load('ball.png')
+ball_img_rect = ball_img.get_rect()
+
+def get_pressed_keys():
     keys = pygame.key.get_pressed()
     pressed = []
     if keys[pygame.K_w]:
@@ -18,8 +21,11 @@ def update():
         pressed.append('S')
     if keys[pygame.K_d]:
         pressed.append('D')
+    return pressed
 
-    send_data = { 'player': player.get_json(), 'keys': pressed }
+def update():
+    # send client data to server
+    send_data = { 'player': player.get_json(), 'keys': get_pressed_keys() }
     s.sendto(bytes(json.dumps(send_data), 'utf-8'), (HOST, PORT))
 
     recv_data, addr = s.recvfrom(1024)
@@ -33,16 +39,22 @@ def update():
                 continue
         players.append(Player(d))
 
+    ball.update(recv_data['ball'])
+
 def draw():
     screen.fill((0,0,0))
     for p in players:
-        imgrect.x = p.x
-        imgrect.y = p.y
-        screen.blit(img, imgrect)
+        player_img_rect.x = p.x
+        player_img_rect.y = p.y
+        screen.blit(player_img, player_img_rect)
+
+    ball_img_rect.x = ball.x
+    ball_img_rect.y = ball.y
+    screen.blit(ball_img, ball_img_rect)
     pygame.display.flip()
 
-def player_init(s):
-    s.sendto(bytes("new", 'utf-8'), (HOST, PORT))
+def initialize_client(s):
+    s.sendto(bytes(CLIENT_CONNECT_MESSAGE, 'utf-8'), (HOST, PORT))
     data, addr = s.recvfrom(1024)
     if not data:
         print("failed to connect to server")
@@ -50,17 +62,15 @@ def player_init(s):
     data = json.loads(str(data)[2:-1])
     return Player(data)
 
-
 # pygame initialization
 pygame.init()
-size = width, height = 320, 240
-screen = pygame.display.set_mode(size)
-img = pygame.image.load('img.png')
-imgrect = img.get_rect()
+screen = pygame.display.set_mode(WINSIZE)
 clock = pygame.time.Clock()
 
+ball = Ball()
+
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-    player = player_init(s)
+    player = initialize_client(s)
     if player == None:
         print('failed to initialize client')
         sys.exit()
