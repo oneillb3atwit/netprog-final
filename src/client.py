@@ -3,9 +3,9 @@ from game import *
 
 ball = Ball()
 players = []
-player_img = pygame.image.load('player.png')
+player_img = pygame.image.load('img/player.png')
 player_img_rect = player_img.get_rect()
-ball_img = pygame.image.load('ball.png')
+ball_img = pygame.image.load('img/ball.png')
 ball_img_rect = ball_img.get_rect()
 
 # pygame initialization
