@@ -1,7 +1,15 @@
 import socket, json, pygame
-from _thread import *
 from game import *
 
+"""
+The main server game loop. Handles new connections and updates the game state.
+Runs indefinitely.
+
+Parameters
+----------
+conn : Socket
+    The server's UDP socket
+"""
 def game_loop(conn):
     while True:
         # handle connections
@@ -28,6 +36,17 @@ def game_loop(conn):
 
     conn.close()
 
+"""
+Initializes a new Player by assigning the client an ID and team, then sending it
+to the client.
+
+Parameters
+----------
+conn : Socket
+    The server's socket
+addr : (str, int)
+    The address and port of the client socket.
+"""
 def add_client(conn, addr):
     p = Player({ 'id': len(players), 'x': 0, 'y': 0, 'team': (len(players) % 2) })
     p.addr = addr
@@ -35,6 +54,18 @@ def add_client(conn, addr):
     pjson = p.get_json()
     conn.sendto(bytes(json.dumps(pjson), encoding='utf8'), addr)
 
+"""
+Handles player movement based on key presses
+
+TODO this could be moved to the Player class
+
+Parameters
+----------
+player : Player
+    The Player object to modify
+keys : list(str)
+    The client's currently pressed keys
+"""
 def handle_keys(player, keys):
     if 'W' in keys:
         player.move(0, -1)
@@ -47,7 +78,7 @@ def handle_keys(player, keys):
 
 ball = Ball()
 
-# bind UDP socket and begin game loop
+# bind socket and begin game loop
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     s.bind((HOST, PORT))
     game_loop(s)
