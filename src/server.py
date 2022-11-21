@@ -5,13 +5,14 @@ from game import *
 clock = pygame.time.Clock()
 
 """
-The main server game loop. Handles new connections and updates the game state.
-Runs indefinitely.
+The main client game loop. Handles new connections, updates game state based off of keypresses, and sends the game state to its connection.
+Runs indefinitely for each connection, until the connection is closed.
 
 Parameters
 ----------
 conn : Socket
     The server's UDP socket
+TODO remove player upon connection termination
 """
 def client_game_loop(conn):
     while True:
@@ -39,13 +40,8 @@ def client_game_loop(conn):
     conn.close()
 
 """
-The main server game loop. Handles new connections and updates the game state.
+The main server game loop. Updates the state of server-linked objects.
 Runs indefinitely.
-
-Parameters
-----------
-conn : Socket
-    The server's UDP socket
 """
 def server_game_loop():
     while True:
@@ -70,28 +66,6 @@ def add_client(conn, addr):
     player_objects.append(p)
     pjson = p.get_json()
     conn.sendto(bytes(json.dumps(pjson), encoding='utf8'), addr)
-
-"""
-Handles player movement based on key presses
-
-TODO this could be moved to the Player class
-
-Parameters
-----------
-player : Player
-    The Player object to modify
-keys : list(str)
-    The client's currently pressed keys
-"""
-def handle_keys(player, keys):
-    if 'W' in keys:
-        player.move(0, -1)
-    if 'A' in keys:
-        player.move(-1, 0)
-    if 'S' in keys:
-        player.move(0, 1)
-    if 'D' in keys:
-        player.move(1, 0)
 
 ball = Ball()
 
