@@ -8,10 +8,11 @@ PLAYERSIZE = (64, 64)
 PLAYERSPEED = 8
 BALLSIZE = (64, 64)
 BALLSPEED = 4
+NETSIZE = (20, 480)
 CLIENT_CONNECT_MESSAGE = "hello"
 CLIENT_DISCONNECT_MESSAGE = "goodbye"
 
-players = []
+player_objects = []
 ball = None
 
 class Player:
@@ -47,7 +48,7 @@ class Player:
         data : dict
             Values of self.id, self.x, self.y, and self.team in a dict object
         """
-        self.update(data)
+        self.client_update(data)
         self.bounds = PLAYERSIZE
 
     def get_json(self):
@@ -76,10 +77,10 @@ class Player:
         newx = self.x + (x_change * PLAYERSPEED)
         newy = self.y + (y_change * PLAYERSPEED)
 
-        if newx <= 0:
-            self.x = 0
-        elif newx >= WINSIZE[0] - self.bounds[0]:
-            self.x = WINSIZE[0] - self.bounds[0]
+        if newx <= (WINSIZE[0] / 2) * self.team:
+            self.x = (WINSIZE[0] / 2) * self.team
+        elif newx >= ((WINSIZE[0] / 2) * (self.team + 1))  - self.bounds[0]:
+            self.x = ((WINSIZE[0] / 2) * (self.team + 1)) - self.bounds[0]
         else:
             self.x += x_change * PLAYERSPEED
 
@@ -90,7 +91,40 @@ class Player:
         else:
             self.y += y_change * PLAYERSPEED
 
-    def update(self, data):
+    def handle_inputs(self, keys):
+        """
+        Handles player movement based on key presses
+
+        Parameters
+        ----------
+        player : Player
+            The Player object to modify
+        keys : list(str)
+            The client's currently pressed keys
+
+        """
+        if 'W' in keys:
+            self.move(0, -1)
+        if 'A' in keys:
+            self.move(-1, 0)
+        if 'S' in keys:
+            self.move(0, 1)
+        if 'D' in keys:
+            self.move(1, 0)
+
+    def server_update(self, keys):
+        """
+        Runs the game logic on the server
+        This is equivalent to an update function in a single player game
+
+        Parameters
+        ----------
+        keys : list(str)
+            The client's currently pressed keys
+        """
+        self.handle_inputs(keys)
+
+    def client_update(self, data):
         """
         Updates the object to match values in the data parameter.
         
@@ -152,7 +186,7 @@ class Ball:
             self.y_direction = 1
 
         # player collision
-        for p in players:
+        for p in player_objects:
             xmin = p.x
             ymin = p.y
             xmax = p.x + p.bounds[0]
@@ -170,7 +204,19 @@ class Ball:
         self.x += self.x_direction * BALLSPEED
         self.y += self.y_direction * BALLSPEED
 
-    def update(self, data):
+    def server_update(self):
+        """
+        Runs the game logic on the server
+        This is equivalent to an update function in a single player game
+
+        Parameters
+        ----------
+        keys : list(str)
+            The client's currently pressed keys
+        """
+        self.move()
+
+    def client_update(self, data):
         """
         Updates the object to match values in the data parameter.
         

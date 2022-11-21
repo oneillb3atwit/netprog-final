@@ -1,4 +1,4 @@
-import socket, json, pygame
+import socket, json
 from game import *
 
 """
@@ -23,17 +23,17 @@ def game_loop(conn):
 
         data = json.loads(data)
         keys = data['keys']
-        player = players[data['player']['id']]
-        addr = players[data['player']['id']].addr
+        player = player_objects[data['player']['id']]
+        addr = player_objects[data['player']['id']].addr
 
-        handle_keys(player, keys)
-        ball.move()
+        player.server_update(keys)
+        ball.server_update()
 
-        players_json = []
-        for p in players:
-            players_json.append(p.get_json())
-        print(f"{players}\n")
-        conn.sendto(bytes(json.dumps({'players': players_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
+        player_objects_json = []
+        for p in player_objects:
+            player_objects_json.append(p.get_json())
+        print(f"{player_objects}\n")
+        conn.sendto(bytes(json.dumps({'player_objects': player_objects_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
 
     conn.close()
 
@@ -49,9 +49,9 @@ addr : (str, int)
     The address and port of the client socket.
 """
 def add_client(conn, addr):
-    p = Player({ 'id': len(players), 'x': 0, 'y': 0, 'team': (len(players) % 2) })
+    p = Player({ 'id': len(player_objects), 'x': 0, 'y': 0, 'team': (len(player_objects) % 2) })
     p.addr = addr
-    players.append(p)
+    player_objects.append(p)
     pjson = p.get_json()
     conn.sendto(bytes(json.dumps(pjson), encoding='utf8'), addr)
 

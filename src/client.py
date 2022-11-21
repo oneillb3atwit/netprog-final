@@ -1,8 +1,9 @@
 import sys, pygame, socket, json
 from game import *
 
+game_objects = []
 ball = Ball()
-players = []
+player_objects = []
 player_img = pygame.image.load('img/player.png')
 player_img_rect = player_img.get_rect()
 ball_img = pygame.image.load('img/ball.png')
@@ -49,25 +50,25 @@ def update():
     if not recv_data: return
     recv_data = json.loads(str(recv_data)[2:-1])
 
-    for d in recv_data['players']:
+    for d in recv_data['player_objects']:
         player_ids = []
-        for p in players:
+        for p in player_objects:
             player_ids.append(p.id)
             if p.id == d['id']:
-                p.update(d)
+                p.client_update(d)
                 continue
         if d['id'] not in player_ids:
-            players.append(Player(d))
-    print(f"{frame} {players}\n")
+            player_objects.append(Player(d))
+    print(f"{frame} {player_objects}\n")
     print("\n")
-    ball.update(recv_data['ball'])
+    ball.client_update(recv_data['ball'])
 
 """
-Draws the Players and Ball to the Pygame window.
+Draws the player_objects and Ball to the Pygame window.
 """
 def draw():
     screen.fill((0,0,0))
-    for p in players:
+    for p in player_objects:
         player_img_rect.x = p.x
         player_img_rect.y = p.y
         screen.blit(player_img, player_img_rect)
@@ -101,7 +102,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         sys.exit()
     else:
         print('client initialized')
-    players.append(player)
+    player_objects.append(player)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
