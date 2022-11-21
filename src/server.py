@@ -1,5 +1,8 @@
-import socket, json
+import socket, json, pygame
+from threading import Thread
 from game import *
+
+clock = pygame.time.Clock()
 
 """
 The main server game loop. Handles new connections and updates the game state.
@@ -10,7 +13,7 @@ Parameters
 conn : Socket
     The server's UDP socket
 """
-def game_loop(conn):
+def client_game_loop(conn):
     while True:
         # handle connections
         data, addr = conn.recvfrom(1024)
@@ -27,15 +30,28 @@ def game_loop(conn):
         addr = player_objects[data['player']['id']].addr
 
         player.server_update(keys)
-        ball.server_update()
 
         player_objects_json = []
         for p in player_objects:
             player_objects_json.append(p.get_json())
         print(f"{player_objects}\n")
         conn.sendto(bytes(json.dumps({'player_objects': player_objects_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
-
     conn.close()
+
+"""
+The main server game loop. Handles new connections and updates the game state.
+Runs indefinitely.
+
+Parameters
+----------
+conn : Socket
+    The server's UDP socket
+"""
+def server_game_loop():
+    while True:
+        ball.server_update()
+        clock.tick(60)
+        
 
 """
 Initializes a new Player by assigning the client an ID and team, then sending it
@@ -79,7 +95,10 @@ def handle_keys(player, keys):
 
 ball = Ball()
 
+# start the server's loop
+server_logic_thread = Thread(target = server_game_loop)
+server_logic_thread.start()
 # bind socket and begin game loop
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     s.bind((HOST, PORT))
-    game_loop(s)
+    client_game_loop(s)
