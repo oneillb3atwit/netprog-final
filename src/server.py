@@ -32,6 +32,7 @@ def game_loop(conn):
         players_json = []
         for p in players:
             players_json.append(p.get_json())
+        print(f"{players}\n")
         conn.sendto(bytes(json.dumps({'players': players_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
 
     conn.close()

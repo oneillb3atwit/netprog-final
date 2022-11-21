@@ -158,8 +158,9 @@ class Ball:
             xmax = p.x + p.bounds[0]
             ymax = p.y + p.bounds[1]
 
-            if self.x <= xmax and self.y <= ymax and self.x >= p.x and self.y >= p.y:
+            if self.x <= xmax and self.y <= ymax and self.x >= xmin and self.y >= ymin:
                self.x_direction *= -1
+               
 
     def move(self):
         """

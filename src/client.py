@@ -7,6 +7,7 @@ player_img = pygame.image.load('img/player.png')
 player_img_rect = player_img.get_rect()
 ball_img = pygame.image.load('img/ball.png')
 ball_img_rect = ball_img.get_rect()
+frame = 0
 
 # pygame initialization
 pygame.init()
@@ -49,12 +50,16 @@ def update():
     recv_data = json.loads(str(recv_data)[2:-1])
 
     for d in recv_data['players']:
+        player_ids = []
         for p in players:
+            player_ids.append(p.id)
             if p.id == d['id']:
                 p.update(d)
                 continue
-        players.append(Player(d))
-
+        if d['id'] not in player_ids:
+            players.append(Player(d))
+    print(f"{frame} {players}\n")
+    print("\n")
     ball.update(recv_data['ball'])
 
 """
@@ -101,5 +106,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
         update()
+        frame += 1
         draw()
         clock.tick(60)
