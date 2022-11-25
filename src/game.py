@@ -1,4 +1,4 @@
-import json
+import json, getopt, sys
 
 HOST = 'localhost'
 PORT = 8000
@@ -14,6 +14,7 @@ CLIENT_DISCONNECT_MESSAGE = "goodbye"
 
 player_objects = []
 ball = None
+debug = False
 
 class Player:
     """
@@ -228,3 +229,30 @@ class Ball:
         self.x = data['x']
         self.y = data['y']
 
+"""
+Prints to stderr only if debug mode is enabled
+
+Parameters
+----------
+s : str
+    the string to print.
+"""
+def printd(s):
+    if debug == True:
+        print(s, file=sys.stderr)
+
+"""
+Parses command line arguments (same for client and server currently)
+"""
+def parse_args():
+    opts, args = getopt.getopt(sys.argv[1:], 'di:p:')
+    for o, a in opts:
+        if o == '-d':
+            debug = True 
+        elif o == '-i':
+            HOST = a
+        elif o == '-p':
+            PORT = int(a)
+        else:
+            print("usage: " + sys.argv[0] + " [-d] [-i IP] [-p PORT]", file=sys.stderr)
+            sys.exit(1)

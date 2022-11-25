@@ -95,6 +95,24 @@ def initialize_client(s):
     data = json.loads(str(data)[2:-1])
     return Player(data)
 
+"""
+Parses command line arguments
+"""
+def parse_args():
+    opts, args = getopt.getopt(sys.argv[1:], 'di:p:')
+    for o, a in opts:
+        if o == '-d':
+            debug = True 
+        elif o == '-i':
+            HOST = a
+        elif o == '-p':
+            PORT = int(a)
+        else:
+            print("usage: " + sys.argv[0] + " [-d] [-i IP] [-p PORT]", file=sys.stderr)
+            sys.exit(1)
+
+parse_args()
+
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     player = initialize_client(s)
     if player == None:

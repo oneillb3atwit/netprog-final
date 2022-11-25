@@ -3,6 +3,7 @@ from threading import Thread
 from game import *
 
 clock = pygame.time.Clock()
+ball = Ball()
 
 """
 The main client game loop. Handles new connections, updates game state based off of keypresses, and sends the game state to its connection.
@@ -35,7 +36,7 @@ def client_game_loop(conn):
         player_objects_json = []
         for p in player_objects:
             player_objects_json.append(p.get_json())
-        print(f"{player_objects}\n")
+        #print(f"{player_objects}\n")
         conn.sendto(bytes(json.dumps({'player_objects': player_objects_json, 'ball': ball.get_json()}), encoding="utf8"), addr)
     conn.close()
 
@@ -67,7 +68,7 @@ def add_client(conn, addr):
     pjson = p.get_json()
     conn.sendto(bytes(json.dumps(pjson), encoding='utf8'), addr)
 
-ball = Ball()
+parse_args()
 
 # start the server's loop
 server_logic_thread = Thread(target = server_game_loop)
