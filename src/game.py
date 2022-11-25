@@ -1,7 +1,7 @@
 import json, getopt, sys
 
 HOST = 'localhost'
-PORT = 8000
+PORT = 7737
 
 WINSIZE = (640, 480)
 PLAYERSIZE = (64, 64)
