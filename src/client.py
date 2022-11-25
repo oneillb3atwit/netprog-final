@@ -1,13 +1,15 @@
 import sys, pygame, socket, json
 from game import *
 
-game_objects = []
 ball = Ball()
+server_objects = []
 player_objects = []
+# TODO: move the following to game.py
 player_img = pygame.image.load('img/player.png')
 player_img_rect = player_img.get_rect()
 ball_img = pygame.image.load('img/ball.png')
 ball_img_rect = ball_img.get_rect()
+# end of todo 
 frame = 0
 
 # pygame initialization
@@ -59,6 +61,15 @@ def update():
                 continue
         if d['id'] not in player_ids:
             player_objects.append(Player(d))
+    # TODO: implement this not as pseudocode
+    # for d in recv_data['server_objects']:
+        # if the received server object is not in server_objects, add it
+        # if a server object in server_objects is not in received or gets destroyed in some way, remove it
+
+        # server objects will be received as x, y, w, h, and an image to draw
+        # image is just image name, all images will be loaded in game.py so it just has to refer to that
+    # for s in server_objects:
+        # s.client_update() or maybe just draw_sprite(s.x, s.y, s.img.get_width(), s.img.get_height(), s.img)
     print(f"{frame} {player_objects}\n")
     print("\n")
     ball.client_update(recv_data['ball'])
@@ -66,16 +77,17 @@ def update():
 """
 Draws the player_objects and Ball to the Pygame window.
 """
+# TODO: move to game.py
 def draw():
     screen.fill((0,0,0))
     for p in player_objects:
-        player_img_rect.x = p.x
-        player_img_rect.y = p.y
-        screen.blit(player_img, player_img_rect)
+        draw_sprite(player_img, screen, p.x, p.y)
 
-    ball_img_rect.x = ball.x
-    ball_img_rect.y = ball.y
-    screen.blit(ball_img, ball_img_rect)
+    # TODO: implement this with the draw_sprite function in game.py
+    # for s in server_objects:
+        # draw the received objects 
+
+    draw_sprite(ball_img, screen, ball.x, ball.y)
     pygame.display.flip()
 
 """

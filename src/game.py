@@ -1,4 +1,4 @@
-import json, getopt, sys
+import json, getopt, sys, pygame
 
 HOST = 'localhost'
 PORT = 7737
@@ -15,6 +15,16 @@ CLIENT_DISCONNECT_MESSAGE = "goodbye"
 player_objects = []
 ball = None
 debug = False
+
+# TODO: remove screen, something to do with moving stuff from client over to here
+def draw_sprite(image, screen, x, y, w=None, h=None):
+    if w == None and h == None:
+        to_draw = pygame.Rect(x, y, image.get_width(), image.get_height())
+    else:
+        to_draw = pygame.Rect(x, y, w, h)
+    # TODO: fix collision checking for this, leave out until x y is the center of the hitbox
+    # to_draw.center = (x, y)
+    screen.blit(image, to_draw)
 
 class Player:
     """
