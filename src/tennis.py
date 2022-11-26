@@ -14,7 +14,7 @@ player_img_rect = player_img.get_rect()
 ball_img = pygame.image.load('img/ball.png')
 ball_img_rect = ball_img.get_rect()
 
-class Player(PositionalObject):
+class Player(DrawableObject):
     """
     Represents a player in the game.
 
@@ -33,8 +33,8 @@ class Player(PositionalObject):
 
     Methods
     -------
-    get_json()
-        Returns relevant JSON data to transfer between the client and server.
+    get_dict() : dict
+        Returns relevant data in dict format to transfer between the client and server.
     move(x_change, y_change)
         Moves the player in the map by x_change * PLAYERSPEED and
         y_change * PLAYERSPEED.
@@ -47,14 +47,14 @@ class Player(PositionalObject):
         data : dict
             Values of self.id, self.x, self.y, and self.team in a dict object
         """
-        self.sprite = pygame.image.load('img/player.png')
-        self.id = None
         if data == None:
             self.x = 0
             self.y = 0
             self.team = 0
         else:
             self.client_update(data)
+
+        self.sprite = pygame.image.load('img/player.png')
         self.bounds = (self.x + PLAYERSIZE[0], self.y + PLAYERSIZE[1])
 
     def client_update(self, data):
@@ -66,7 +66,6 @@ class Player(PositionalObject):
         data : dict
             new values for the object.
         """
-        
         if self.id == None:
             self.id = data['id']
         if data['id'] != self.id:
@@ -76,7 +75,7 @@ class Player(PositionalObject):
         self.team = data['team']
         self.bounds = (self.x + PLAYERSIZE[0], self.y + PLAYERSIZE[1])
 
-    def get_json(self):
+    def get_dict(self):
         """
         Returns a dict of relevant data for transfer between the client and server.
 
@@ -128,7 +127,6 @@ class Player(PositionalObject):
             The client's currently pressed keys
 
         """
-        print(keys)
         if pygame.K_w in keys:
             self.move(0, -1)
         if pygame.K_a in keys:
@@ -147,9 +145,9 @@ class Player(PositionalObject):
             return
         self.handle_inputs(data['keys'])
 
-class Ball(PositionalObject):
+class Ball(DrawableObject):
     """
-    Represents the ball in the game.
+    Represents the ball in the tennis game.
 
     Attributes
     ----------
@@ -164,6 +162,14 @@ class Ball(PositionalObject):
     """
 
     def __init__(self, data=None):
+        """
+        Initializes the Ball.
+        
+        Parameters
+        ----------
+        data : dict
+            pre-set values if retrieved from the server.
+        """
         self.sprite = pygame.image.load('img/ball.png')
         if data == None:
             self.x = 0
@@ -186,14 +192,21 @@ class Ball(PositionalObject):
         self.y = data['y']
 
 
-    def get_json(self):
+    def get_dict(self):
+        """
+        Returns
+        
+        Parameters
+        ----------
+        data : dict
+            new values for the object.
+        """
         return {'type': 'Ball', 'x': self.x, 'y': self.y}
 
     def handle_collision(self):
         """
         Handles player and wall collision.
         """
-        # wall collision
         if self.x + BALLSIZE[0] >= WINSIZE[0]:
             self.x_direction = -1
         if self.x <= 0:
@@ -202,17 +215,6 @@ class Ball(PositionalObject):
             self.y_direction = -1
         if self.y <= 0:
             self.y_direction = 1
-
-        # player collision
-#        for p in self.game_objects:
-#            xmin = p.x
-#            ymin = p.y
-#            xmax = p.x + p.bounds[0]
-#            ymax = p.y + p.bounds[1]
-
-#            if self.x <= xmax and self.y <= ymax and self.x >= xmin and self.y >= ymin:
-#               self.x_direction *= -1
-               
 
     def move(self):
         """
@@ -236,10 +238,31 @@ class Ball(PositionalObject):
 
 class TennisClient(GameClient):
     def __init__(self, id, server_host, server_port, game_objects=[]):
+        """
+        Initialize the client.
+
+        Parameters
+        ----------
+        id : int
+            the client ID
+        server_host : str
+            the address of the server to connect to
+        server_port : int
+            the port of the server to connect to
+        """
         super(TennisClient, self).__init__(id, server_host, server_port, game_objects)
         self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
 
     def serialize_game_objects(self, data):
+        """
+        Convert all elements data to their corresponding GameObjects and places
+        the results in self.game_objects.
+
+        Parameters
+        ----------
+        data : dict
+            the data received from the server to store
+        """
         self.game_objects = []
         for o in data['game_objects']:
             if o['type'] == "Player":
@@ -249,10 +272,29 @@ class TennisClient(GameClient):
 
 class TennisServer(GameServer):
     def __init__(self, server_host, server_port):
+        """
+        Initializes the server.
+
+        Parameters
+        ----------
+        server_host : str
+            the hostname or IP to bind to
+        server_port : int
+            the port to bind to
+        """
         super(TennisServer, self).__init__(server_host, server_port)
         self.game_objects.append(Ball())
 
     def add_client(self, addr):
+        """
+        Adds a client to the server (called on new connection by the
+        superclass).
+
+        Parameters
+        ----------
+        addr : tuple(str, int)
+            the address and port for the new client.
+        """
         self.clients.append(addr)
         player = Player()
         player.id = len(self.clients)
