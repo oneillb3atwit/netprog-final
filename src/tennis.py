@@ -66,8 +66,7 @@ class Player(DrawableObject):
         data : dict
             new values for the object.
         """
-        if self.id == None:
-            self.id = data['id']
+        self.id = data['id']
         if data['id'] != self.id:
             return
         self.x = data['x']

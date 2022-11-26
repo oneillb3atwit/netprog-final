@@ -37,6 +37,7 @@ class GameClient:
         self.running = False
         self.key_filter = []
         self.sock = None
+        self.frame = 0
     
     def deserialize_game_objects(self):
         """
@@ -56,13 +57,13 @@ class GameClient:
 
     def draw(self):
         """
-        Draws all PositionalObjects in game_objects to the screen
+        Draws all DrawableObjects in game_objects to the screen
         """
         if self.game_objects == None:
             return
         self.screen.fill((0,0,0))
         for o in self.game_objects:
-            if isinstance(o, PositionalObject):
+            if isinstance(o, DrawableObject):
                 o.draw(self.screen)
         pygame.display.flip()
 
