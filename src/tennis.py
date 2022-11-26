@@ -1,7 +1,7 @@
 from engine.game import *
 from engine.client import *
 from engine.server import *
-import pygame
+import pygame, math
 
 PLAYERSIZE = (64, 64)
 PLAYERSPEED = 8
@@ -97,22 +97,30 @@ class Player(DrawableObject):
         y_change : int
             the change in y value
         """
-        newx = self.x + (x_change * PLAYERSPEED)
-        newy = self.y + (y_change * PLAYERSPEED)
+        newx = self.x + x_change * PLAYERSPEED
+        newy = self.y + y_change * PLAYERSPEED
+        
+        change_vec = [x_change, y_change]
+        change_vec_magnitude = math.sqrt(pow(change_vec[0], 2) + pow(change_vec[1], 2))
+
+        if change_vec[0] > 0:
+            newx = self.x + ((change_vec[0]/change_vec_magnitude) * PLAYERSPEED)
+        if change_vec[1] > 0:
+            newy = self.y + ((change_vec[1]/change_vec_magnitude) * PLAYERSPEED)
 
         if newx <= (WINSIZE[0] / 2) * self.team:
             self.x = (WINSIZE[0] / 2) * self.team
         elif newx >= ((WINSIZE[0] / 2) * (self.team + 1))  - self.bounds[0]:
             self.x = ((WINSIZE[0] / 2) * (self.team + 1)) - self.bounds[0]
         else:
-            self.x += x_change * PLAYERSPEED
+            self.x = newx
 
-        if newy <= 0:
+        if newy < 0:
             self.y = 0
         elif newy >= WINSIZE[1] - self.bounds[1]:
             self.y = WINSIZE[1] - self.bounds[1]
         else:
-            self.y += y_change * PLAYERSPEED
+            self.y = newy
 
     def handle_inputs(self, keys):
         """
@@ -126,14 +134,17 @@ class Player(DrawableObject):
             The client's currently pressed keys
 
         """
+        x = 0
+        y = 0
         if pygame.K_w in keys:
-            self.move(0, -1)
+            y -= 1
         if pygame.K_a in keys:
-            self.move(-1, 0)
+            x -= 1
         if pygame.K_s in keys:
-            self.move(0, 1)
+            y += 1
         if pygame.K_d in keys:
-            self.move(1, 0)
+            x += 1
+        self.move(x, y)
 
     def server_update(self, data):
         """
