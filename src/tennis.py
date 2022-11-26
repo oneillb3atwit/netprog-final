@@ -1,32 +1,20 @@
-import json, getopt, sys, pygame
+from engine.game import *
+from engine.client import *
+from engine.server import *
+import pygame
 
-HOST = 'localhost'
-PORT = 7737
-
-WINSIZE = (640, 480)
 PLAYERSIZE = (64, 64)
 PLAYERSPEED = 8
 BALLSIZE = (64, 64)
 BALLSPEED = 4
 NETSIZE = (20, 480)
-CLIENT_CONNECT_MESSAGE = "hello"
-CLIENT_DISCONNECT_MESSAGE = "goodbye"
 
-player_objects = []
-ball = None
-debug = False
+player_img = pygame.image.load('img/player.png')
+player_img_rect = player_img.get_rect()
+ball_img = pygame.image.load('img/ball.png')
+ball_img_rect = ball_img.get_rect()
 
-# TODO: remove screen, something to do with moving stuff from client over to here
-def draw_sprite(image, screen, x, y, w=None, h=None):
-    if w == None and h == None:
-        to_draw = pygame.Rect(x, y, image.get_width(), image.get_height())
-    else:
-        to_draw = pygame.Rect(x, y, w, h)
-    # TODO: fix collision checking for this, leave out until x y is the center of the hitbox
-    # to_draw.center = (x, y)
-    screen.blit(image, to_draw)
-
-class Player:
+class Player(PositionalObject):
     """
     Represents a player in the game.
 
@@ -52,15 +40,41 @@ class Player:
         y_change * PLAYERSPEED.
     """
 
-    def __init__(self, data):
+    def __init__(self, data=None):
         """
         Parameters
         ----------
         data : dict
             Values of self.id, self.x, self.y, and self.team in a dict object
         """
-        self.client_update(data)
-        self.bounds = PLAYERSIZE
+        self.sprite = pygame.image.load('img/player.png')
+        self.id = None
+        if data == None:
+            self.x = 0
+            self.y = 0
+            self.team = 0
+        else:
+            self.client_update(data)
+        self.bounds = (self.x + PLAYERSIZE[0], self.y + PLAYERSIZE[1])
+
+    def client_update(self, data):
+        """
+        Updates the object to match values in the data parameter.
+        
+        Parameters
+        ----------
+        data : dict
+            new values for the object.
+        """
+        
+        if self.id == None:
+            self.id = data['id']
+        if data['id'] != self.id:
+            return
+        self.x = data['x']
+        self.y = data['y']
+        self.team = data['team']
+        self.bounds = (self.x + PLAYERSIZE[0], self.y + PLAYERSIZE[1])
 
     def get_json(self):
         """
@@ -71,7 +85,7 @@ class Player:
         dict
             a list of relevant data to transfer
         """
-        return {'id': self.id, 'x': self.x, 'y': self.y, 'team': self.team}
+        return {'type': 'Player', 'id': self.id, 'x': self.x, 'y': self.y, 'team': self.team}
 
     def move(self, x_change, y_change):
         """
@@ -114,42 +128,26 @@ class Player:
             The client's currently pressed keys
 
         """
-        if 'W' in keys:
+        print(keys)
+        if pygame.K_w in keys:
             self.move(0, -1)
-        if 'A' in keys:
+        if pygame.K_a in keys:
             self.move(-1, 0)
-        if 'S' in keys:
+        if pygame.K_s in keys:
             self.move(0, 1)
-        if 'D' in keys:
+        if pygame.K_d in keys:
             self.move(1, 0)
 
-    def server_update(self, keys):
+    def server_update(self, data):
         """
         Runs the game logic on the server
         This is equivalent to an update function in a single player game
-
-        Parameters
-        ----------
-        keys : list(str)
-            The client's currently pressed keys
         """
-        self.handle_inputs(keys)
+        if data['id'] != self.id:
+            return
+        self.handle_inputs(data['keys'])
 
-    def client_update(self, data):
-        """
-        Updates the object to match values in the data parameter.
-        
-        Parameters
-        ----------
-        data : dict
-            new values for the object.
-        """
-        self.id = data['id']
-        self.x = data['x']
-        self.y = data['y']
-        self.team = data['team']
-
-class Ball:
+class Ball(PositionalObject):
     """
     Represents the ball in the game.
 
@@ -165,22 +163,31 @@ class Ball:
         The y direction of the ball's movement (-1: up, 1: down)
     """
 
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.x_direction = 1
-        self.y_direction = 1
+    def __init__(self, data=None):
+        self.sprite = pygame.image.load('img/ball.png')
+        if data == None:
+            self.x = 0
+            self.y = 0
+            self.x_direction = 1
+            self.y_direction = 1
+        else:
+            self.client_update(data)
+
+    def client_update(self, data):
+        """
+        Updates the object to match values in the data parameter.
+        
+        Parameters
+        ----------
+        data : dict
+            new values for the object.
+        """
+        self.x = data['x']
+        self.y = data['y']
+
 
     def get_json(self):
-        """
-        Returns a dict of relevant data for transfer between the client and server.
-
-        Returns
-        -------
-        dict
-            a list of relevant data to transfer
-        """
-        return {'x': self.x, 'y': self.y}
+        return {'type': 'Ball', 'x': self.x, 'y': self.y}
 
     def handle_collision(self):
         """
@@ -197,14 +204,14 @@ class Ball:
             self.y_direction = 1
 
         # player collision
-        for p in player_objects:
-            xmin = p.x
-            ymin = p.y
-            xmax = p.x + p.bounds[0]
-            ymax = p.y + p.bounds[1]
+#        for p in self.game_objects:
+#            xmin = p.x
+#            ymin = p.y
+#            xmax = p.x + p.bounds[0]
+#            ymax = p.y + p.bounds[1]
 
-            if self.x <= xmax and self.y <= ymax and self.x >= xmin and self.y >= ymin:
-               self.x_direction *= -1
+#            if self.x <= xmax and self.y <= ymax and self.x >= xmin and self.y >= ymin:
+#               self.x_direction *= -1
                
 
     def move(self):
@@ -215,7 +222,7 @@ class Ball:
         self.x += self.x_direction * BALLSPEED
         self.y += self.y_direction * BALLSPEED
 
-    def server_update(self):
+    def server_update(self, data):
         """
         Runs the game logic on the server
         This is equivalent to an update function in a single player game
@@ -227,42 +234,35 @@ class Ball:
         """
         self.move()
 
-    def client_update(self, data):
-        """
-        Updates the object to match values in the data parameter.
-        
-        Parameters
-        ----------
-        data : dict
-            new values for the object.
-        """
-        self.x = data['x']
-        self.y = data['y']
+class TennisClient(GameClient):
+    def __init__(self, id, server_host, server_port, game_objects=[]):
+        super(TennisClient, self).__init__(id, server_host, server_port, game_objects)
+        self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
 
-"""
-Prints to stderr only if debug mode is enabled
+    def serialize_game_objects(self, data):
+        self.game_objects = []
+        for o in data['game_objects']:
+            if o['type'] == "Player":
+                self.game_objects.append(Player(o))
+            elif o['type'] == "Ball":
+                self.game_objects.append(Ball(o))
 
-Parameters
-----------
-s : str
-    the string to print.
-"""
-def printd(s):
-    if debug == True:
-        print(s, file=sys.stderr)
+class TennisServer(GameServer):
+    def __init__(self, server_host, server_port):
+        super(TennisServer, self).__init__(server_host, server_port)
+        self.game_objects.append(Ball())
 
-"""
-Parses command line arguments (same for client and server currently)
-"""
-def parse_args():
-    opts, args = getopt.getopt(sys.argv[1:], 'di:p:')
-    for o, a in opts:
-        if o == '-d':
-            debug = True 
-        elif o == '-i':
-            HOST = a
-        elif o == '-p':
-            PORT = int(a)
-        else:
-            print("usage: " + sys.argv[0] + " [-d] [-i IP] [-p PORT]", file=sys.stderr)
-            sys.exit(1)
+    def add_client(self, addr):
+        self.clients.append(addr)
+        player = Player()
+        player.id = len(self.clients)
+        self.game_objects.append(player)
+        return len(self.clients)
+
+args = parse_args()
+if args['server'] == True:
+    print("Starting server")
+    TennisServer(HOST, PORT).start()
+else:
+    print("Starting client")
+    TennisClient(0, HOST, PORT).start()
