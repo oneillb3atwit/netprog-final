@@ -320,8 +320,8 @@ if 'port' in args:
     PORT = args['port']
 
 if args['server'] == True:
-    print("Starting server")
+    print('Starting server')
     TennisServer(HOST, PORT).start()
 else:
-    print("Starting client")
+    print('Starting client')
     TennisClient(0, HOST, PORT).start()

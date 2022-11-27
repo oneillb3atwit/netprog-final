@@ -1,15 +1,17 @@
 import json, getopt, sys, pygame
 
+# DEFAULTS
 HOST = 'localhost'
 PORT = 7737
-CLIENT_CONNECT_MESSAGE = "hello"
-CLIENT_DISCONNECT_MESSAGE = "goodbye"
 MAX_PACKET_SIZE = 4096
 WINSIZE = (640, 480)
-frame = 0
-game_objects = []
 debug = False
 server_mode = False
+
+CLIENT_CONNECT_MESSAGE = "hello"
+CLIENT_DISCONNECT_MESSAGE = "goodbye"
+frame = 0
+game_objects = []
 screen = None
 clock = None
 
@@ -143,18 +145,20 @@ def printd(s):
 def parse_args():
     """
     Parses command line arguments.
+
+    Returns
+    -------
+    dict
+        a dict containing all the arguments passed or their default values.
     """
-    global HOST
     opts, args = getopt.getopt(sys.argv[1:], 'sdi:p:')
-    ret = {'server': False}
+    ret = {'server': False, 'debug': False, 'host': HOST, 'port': PORT}
     for o, a in opts:
         if o == '-d':
             ret['debug'] = True
         elif o == '-i':
-            HOST = a
             ret['host'] = a
         elif o == '-p':
-            PORT = a
             ret['port'] = a
         elif o == '-s':
             ret['server'] = True

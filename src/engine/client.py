@@ -75,7 +75,6 @@ class GameClient:
         keys = pygame.key.get_pressed()
         for k in self.key_filter:
             if keys[k] == True:
-                print(k)
                 pressed.append(k)
         return pressed
     
