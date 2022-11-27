@@ -77,6 +77,8 @@ class GameClient:
             if keys[k] == True:
                 pressed.append(k)
         return pressed
+    def get_mouse(self):
+        return pygame.mouse.get_pos()
     
     def serialize_game_objects(self, data):
         """
@@ -117,7 +119,7 @@ class GameClient:
         Send the current game state to the server, get a response, and load it.
         """
         if not self.running: return
-        send_data = { 'id': self.id, 'keys': self.get_pressed_keys() }
+        send_data = { 'id': self.id, 'keys': self.get_pressed_keys(), 'mouse_pos': self.get_mouse() }
         self.sock.sendto(bytes(json.dumps(send_data), 'utf-8'), (self.server_host, self.server_port))
         packet = self.sock.recvfrom(MAX_PACKET_SIZE)[0]
         try:

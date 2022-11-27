@@ -1,18 +1,13 @@
 from engine.game import *
 from engine.client import *
 from engine.server import *
-import pygame, math
+import pygame
 
 PLAYERSIZE = (64, 64)
 PLAYERSPEED = 8
 BALLSIZE = (64, 64)
 BALLSPEED = 4
-NETSIZE = (20, 480)
-
-player_img = pygame.image.load('img/player.png')
-player_img_rect = player_img.get_rect()
-ball_img = pygame.image.load('img/ball.png')
-ball_img_rect = ball_img.get_rect()
+GOALBOUNDS = (20, 100)
 
 class Player(DrawableObject):
     """
@@ -35,9 +30,8 @@ class Player(DrawableObject):
     -------
     get_dict() : dict
         Returns relevant data in dict format to transfer between the client and server.
-    move(x_change, y_change)
-        Moves the player in the map by x_change * PLAYERSPEED and
-        y_change * PLAYERSPEED.
+    move(pos)
+        Moves the player to pos[0] as x and pos[1] as y
     """
 
     def __init__(self, data=None):
@@ -54,7 +48,7 @@ class Player(DrawableObject):
         else:
             self.client_update(data)
 
-        self.sprite = pygame.image.load('img/player.png')
+        self.sprite = pygame.image.load('img/airhockey/paddle.png')
         self.bounds = (self.x + PLAYERSIZE[0], self.y + PLAYERSIZE[1])
 
     def client_update(self, data):
@@ -85,10 +79,9 @@ class Player(DrawableObject):
         """
         return {'type': 'Player', 'id': self.id, 'x': self.x, 'y': self.y, 'team': self.team}
 
-    def move(self, x_change, y_change):
+    def move(self, pos):
         """
-        Moves the player by x_change * PLAYERSPEED and y_change * PLAYERSPEED.
-        Also handles wall collision.
+        Moves the player to the mouse position within its bounds
 
         Parameters
         ----------
@@ -97,54 +90,21 @@ class Player(DrawableObject):
         y_change : int
             the change in y value
         """
-        newx = self.x + x_change * PLAYERSPEED
-        newy = self.y + y_change * PLAYERSPEED
-        
-        change_vec = [x_change, y_change]
-        change_vec_magnitude = math.sqrt(pow(change_vec[0], 2) + pow(change_vec[1], 2))
 
-        if change_vec[0] > 0:
-            newx = self.x + ((change_vec[0]/change_vec_magnitude) * PLAYERSPEED)
-        if change_vec[1] > 0:
-            newy = self.y + ((change_vec[1]/change_vec_magnitude) * PLAYERSPEED)
 
-        if newx <= (WINSIZE[0] / 2) * self.team:
+        if pos[0] <= (WINSIZE[0] / 2) * self.team:
             self.x = (WINSIZE[0] / 2) * self.team
-        elif newx >= ((WINSIZE[0] / 2) * (self.team + 1))  - self.bounds[0]:
+        elif pos[0] >= ((WINSIZE[0] / 2) * (self.team + 1))  - self.bounds[0]:
             self.x = ((WINSIZE[0] / 2) * (self.team + 1)) - self.bounds[0]
         else:
-            self.x = newx
+            self.x = pos[0]
 
-        if newy < 0:
+        if pos[1] < 0:
             self.y = 0
-        elif newy >= WINSIZE[1] - self.bounds[1]:
+        elif pos[1] >= WINSIZE[1] - self.bounds[1]:
             self.y = WINSIZE[1] - self.bounds[1]
         else:
-            self.y = newy
-
-    def handle_inputs(self, keys):
-        """
-        Handles player movement based on key presses
-
-        Parameters
-        ----------
-        player : Player
-            The Player object to modify
-        keys : list(str)
-            The client's currently pressed keys
-
-        """
-        x = 0
-        y = 0
-        if pygame.K_w in keys:
-            y -= 1
-        if pygame.K_a in keys:
-            x -= 1
-        if pygame.K_s in keys:
-            y += 1
-        if pygame.K_d in keys:
-            x += 1
-        self.move(x, y)
+            self.y = pos[1]
 
     def server_update(self, data):
         """
@@ -153,34 +113,34 @@ class Player(DrawableObject):
         """
         if data['id'] != self.id:
             return
-        self.handle_inputs(data['keys'])
+        self.move(data['mouse_pos'])
 
-class Ball(DrawableObject):
+class Puck(DrawableObject):
     """
-    Represents the ball in the tennis game.
+    Represents the puck in the tennis game.
 
     Attributes
     ----------
     x : int
-        The x value of the ball in the map
+        The x value of the puck in the map
     y : int
-        The y value of the ball in the map
+        The y value of the puck in the map
     x_direction : int
-        The x direction of the ball's movement (-1: left, 1: right)
+        The x direction of the puck's movement (-1: left, 1: right)
     y_direction : int
-        The y direction of the ball's movement (-1: up, 1: down)
+        The y direction of the puck's movement (-1: up, 1: down)
     """
 
     def __init__(self, data=None):
         """
-        Initializes the Ball.
+        Initializes the puck.
         
         Parameters
         ----------
         data : dict
             pre-set values if retrieved from the server.
         """
-        self.sprite = pygame.image.load('img/ball.png')
+        self.sprite = pygame.image.load('img/airhockey/puck.png')
         if data == None:
             self.x = 0
             self.y = 0
@@ -211,7 +171,7 @@ class Ball(DrawableObject):
         data : dict
             new values for the object.
         """
-        return {'type': 'Ball', 'x': self.x, 'y': self.y}
+        return {'type': 'Puck', 'x': self.x, 'y': self.y}
 
     def handle_collision(self):
         """
@@ -228,7 +188,7 @@ class Ball(DrawableObject):
 
     def move(self):
         """
-        Moves the ball based on the direction and collision status
+        Moves the puck based on the direction and collision status
         """
         self.handle_collision()
         self.x += self.x_direction * BALLSPEED
@@ -246,7 +206,7 @@ class Ball(DrawableObject):
         """
         self.move()
 
-class TennisClient(GameClient):
+class AirHockeyClient(GameClient):
     def __init__(self, id, server_host, server_port, game_objects=[]):
         """
         Initialize the client.
@@ -260,7 +220,7 @@ class TennisClient(GameClient):
         server_port : int
             the port of the server to connect to
         """
-        super(TennisClient, self).__init__(id, server_host, server_port, game_objects)
+        super(AirHockeyClient, self).__init__(id, server_host, server_port, game_objects)
         self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
 
     def serialize_game_objects(self, data):
@@ -277,10 +237,10 @@ class TennisClient(GameClient):
         for o in data['game_objects']:
             if o['type'] == "Player":
                 self.game_objects.append(Player(o))
-            elif o['type'] == "Ball":
-                self.game_objects.append(Ball(o))
+            elif o['type'] == "Puck":
+                self.game_objects.append(Puck(o))
 
-class TennisServer(GameServer):
+class AirHockeyServer(GameServer):
     def __init__(self, server_host, server_port):
         """
         Initializes the server.
@@ -292,8 +252,8 @@ class TennisServer(GameServer):
         server_port : int
             the port to bind to
         """
-        super(TennisServer, self).__init__(server_host, server_port)
-        self.game_objects.append(Ball())
+        super(AirHockeyServer, self).__init__(server_host, server_port)
+        self.game_objects.append(Puck())
 
     def add_client(self, addr):
         """
@@ -321,7 +281,7 @@ if 'port' in args:
 
 if args['server'] == True:
     print('Starting server')
-    TennisServer(HOST, PORT).start()
+    AirHockeyServer(HOST, PORT).start()
 else:
     print('Starting client')
-    TennisClient(0, HOST, PORT).start()
+    AirHockeyClient(0, HOST, PORT).start()
