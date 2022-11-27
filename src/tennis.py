@@ -312,6 +312,13 @@ class TennisServer(GameServer):
         return len(self.clients)
 
 args = parse_args()
+if 'debug' in args:
+    debug = True
+if 'host' in args:
+    HOST = args['host']
+if 'port' in args:
+    PORT = args['port']
+
 if args['server'] == True:
     print("Starting server")
     TennisServer(HOST, PORT).start()

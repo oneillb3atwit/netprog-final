@@ -144,6 +144,7 @@ def parse_args():
     """
     Parses command line arguments.
     """
+    global HOST
     opts, args = getopt.getopt(sys.argv[1:], 'sdi:p:')
     ret = {'server': False}
     for o, a in opts:
@@ -153,6 +154,7 @@ def parse_args():
             HOST = a
             ret['host'] = a
         elif o == '-p':
+            PORT = a
             ret['port'] = a
         elif o == '-s':
             ret['server'] = True
