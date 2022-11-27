@@ -118,8 +118,11 @@ class GameClient:
         Send the current game state to the server, get a response, and load it.
         """
         if not self.running: return
-        send_data = { 'id': self.id, 'game_objects': self.deserialize_game_objects(), 'keys': self.get_pressed_keys() }
+        send_data = { 'id': self.id, 'keys': self.get_pressed_keys() }
         self.sock.sendto(bytes(json.dumps(send_data), 'utf-8'), (self.server_host, self.server_port))
         packet = self.sock.recvfrom(MAX_PACKET_SIZE)[0]
-        data = json.loads(str(packet)[2:-1])
-        self.serialize_game_objects(data)
+        try:
+            data = json.loads(str(packet)[2:-1])
+            self.serialize_game_objects(data)
+        except ValueError as e:
+            printd('Malformed packet received.')

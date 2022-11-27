@@ -64,11 +64,13 @@ class GameServer:
                 self.sock.sendto(bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8'), addr)
                 continue
 
-            data_dict = json.loads(data)
-            client_id = data_dict['id']
-            for o in self.game_objects:
-                o.server_update(data_dict)
-
+            try:
+                data_dict = json.loads(data)
+                client_id = data_dict['id']
+                for o in self.game_objects:
+                    o.server_update(data_dict)
+            except ValueError as e:
+                printd('Malformed packet received.')
             self.sock.sendto(bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8'), addr)
         self.halt()
 
