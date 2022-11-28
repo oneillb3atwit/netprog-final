@@ -128,7 +128,7 @@ class Player(DrawableObject):
         else:
             self.x = WINSIZE[0]
         self.y = 240
-    def server_update(self, data):
+    def server_update(self, data, game_objects):
         """
         Runs the game logic on the server
         This is equivalent to an update function in a single player game
@@ -182,7 +182,7 @@ class GameManager(GameObject):
             new values for the object.
         """
         return {'type': 'GameManager', 'score': self.score}
-    def server_update(self, data):
+    def server_update(self, data, game_objects):
         printd(str(self.score))
 
 class Puck(DrawableObject):
@@ -322,7 +322,7 @@ class Puck(DrawableObject):
         self.x_vel = 0
         self.y_vel = 0
 
-    def server_update(self, game_objects):
+    def server_update(self, data, game_objects):
         """
         Runs the game logic on the server
         This is equivalent to an update function in a single player game
@@ -422,40 +422,6 @@ class AirHockeyServer(GameServer):
         player.team = len(self.clients) % 2
         self.game_objects.append(player)
         return len(self.clients)
-    def game_loop(self):
-        """
-        The main server loop. Overriding to send server info to the puck object
-        """
-        self.running = True
-        while self.running:
-            data, addr = self.sock.recvfrom(1024)
-            game_objects_json = []
-            for o in self.game_objects:
-                game_objects_json.append(o.get_dict())
-
-            if data == None: break
-            data = str(data)[2:-1]
-            if data == CLIENT_CONNECT_MESSAGE:
-                client_id = self.add_client(addr)
-                response = bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8')
-                self.sock.sendto(bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8'), addr)
-                continue
-
-            try:
-                data_dict = json.loads(data)
-                client_id = data_dict['id']
-                if (len(self.clients) > 1):
-                    self.playing = True
-                for o in self.game_objects:
-                    if (o.type == 'Puck'):
-                        o.server_update(self.game_objects)
-                    else:
-                        o.server_update(data_dict)
-
-            except ValueError as e:
-                printd('Malformed packet received.')
-            self.sock.sendto(bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8'), addr)
-        self.halt()
 
 args = parse_args()
 if 'debug' in args:

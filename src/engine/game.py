@@ -62,7 +62,7 @@ class GameObject:
         """
         pass
 
-    def server_update(self):
+    def server_update(self, data, game_objects):
         """
         Update the GameObject on the server side (implemented by subclasses).
         """
@@ -125,6 +125,8 @@ class DrawableObject(GameObject):
         ----------
         data : dict
             new values retrieved from the server
+        game_objects : list(GameObject)
+            all GameObjects
         """
         super(data)
         self.x = data['x']
