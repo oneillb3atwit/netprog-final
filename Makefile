@@ -15,7 +15,9 @@ debug-server:
 	python src/airhockey.py -s -d
 
 dist:
-	tar -czf pygame-multiplayer.tar.gz img src/ Makefile README.md LICENSE
+	tar -czfv pygame-multiplayer-$(git rev-parse --short HEAD).tar.gz img src/ Makefile README.md LICENSE
 
+distclean:
+	rm -fv pygame-multiplayer-*.tar.gz
 
-.PHONY: all run-client run-server
+.PHONY: all run-client run-server dist distclean
