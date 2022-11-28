@@ -5,10 +5,11 @@ import pygame
 
 PLAYERSIZE = (64, 64)
 PUCKSIZE = (64, 64)
-GOALBOUNDS = (20, 100)
-PUCKMAXSPEED = 50
-
-
+GOALBOUNDS = (10, 100)
+PUCKMINSPEED = 1
+PUCKMAXSPEED = 8
+MAX_SCORE = 7
+BG_IMG = pygame.image.load("img/airhockey/bg.png")
 
 class Player(DrawableObject):
     """
@@ -53,6 +54,7 @@ class Player(DrawableObject):
             self.team = 0
         else:
             self.client_update(data)
+        self.can_hit = True
         self.x_vel = 0
         self.y_vel = 0
         self.sprite = pygame.image.load('img/airhockey/paddle.png')
@@ -103,18 +105,28 @@ class Player(DrawableObject):
 
         if pos[0] <= (WINSIZE[0] / 2) * self.team:
             self.x = (WINSIZE[0] / 2) * self.team
+            self.x_vel = 0
         elif pos[0] >= ((WINSIZE[0] / 2) * (self.team + 1))  - self.bounds[0]:
             self.x = ((WINSIZE[0] / 2) * (self.team + 1)) - self.bounds[0]
+            self.x_vel = 0
         else:
             self.x = pos[0]
 
         if pos[1] < 0:
             self.y = 0
+            self.y_vel = 0
         elif pos[1] >= WINSIZE[1] - self.bounds[1]:
             self.y = WINSIZE[1] - self.bounds[1]
+            self.y_vel = 0
         else:
             self.y = pos[1]
 
+    def reset_pos(self):
+        if self.team == 0:
+            self.x = 0
+        else:
+            self.x = WINSIZE[0]
+        self.y = 240
     def server_update(self, data):
         """
         Runs the game logic on the server
@@ -123,6 +135,48 @@ class Player(DrawableObject):
         if data['id'] != self.id:
             return
         self.move(data['mouse_pos'])
+
+class GameManager(GameObject):
+    """
+    Handles game logic
+
+    Attributes
+    ----------
+    score : int[]
+        The current score
+    """
+
+    def __init__(self):
+        self.score = [0,0]
+        self.type = 'GameManager'
+
+    def client_update(self, data):
+        """
+        Updates the object to match values in the data parameter.
+        This object only updates the score on the client. Not important otherwise
+
+        Parameters
+        ----------
+        data : dict
+            new values for the object.
+        """
+        self.score = data['score']
+
+    def restart(self):
+        self.score = [0,0]
+
+    def get_dict(self):
+        """
+        Returns
+        
+        Parameters
+        ----------
+        data : dict
+            new values for the object.
+        """
+        return {'type': 'GameManager', 'score': self.score}
+    def server_update(self, data):
+        printd(str(self.score))
 
 class Puck(DrawableObject):
     """
@@ -152,8 +206,8 @@ class Puck(DrawableObject):
         self.type = 'Puck'
         self.sprite = pygame.image.load('img/airhockey/puck.png')
         if data == None:
-            self.x = 272
-            self.y = 272
+            self.x = 240
+            self.y = 208
             self.x_vel = 0
             self.y_vel = 0
         else:
@@ -187,32 +241,79 @@ class Puck(DrawableObject):
         """
         Handles player and wall collision.
         """
-        # collision goes here :D
+        puckrect = pygame.Rect(self.x + 10, self.y + 10, PUCKSIZE[0] - 10, PUCKSIZE[1] - 10) # i am lying about the hitbox :)
         for g in game_objects:
             if (g.type == 'Player'):
-                puckrect = pygame.Rect(self.x, self.y, PUCKSIZE[0], PUCKSIZE[1])
                 playerrect = pygame.Rect(g.x, g.y, PLAYERSIZE[0], PLAYERSIZE[1]) 
                 if (puckrect.colliderect(playerrect)):
-                    print('colliding')
-                    self.x_vel = max(min(PUCKMAXSPEED, -g.x_vel), -PUCKMAXSPEED)
-                    self.y_vel = max(min(PUCKMAXSPEED, -g.y_vel), -PUCKMAXSPEED)
-                    self.x += self.x_vel * 1.1
-                    self.y += self.y_vel * 1.1
-        if (self.x <= 0 or self.x >= WINSIZE[0]):
-            self.x_vel *= -1
-        if (self.y <= 0 or self.y >= WINSIZE[1]):
-            self.y_vel *= -1
-            
+                    if (g.can_hit):
+                        print(str(g.x_vel) + " " + str(g.y_vel))
+                        if (g.x_vel == 0):
+                            self.x_vel = -self.x_vel * 0.7
+                        else:
+                            gdir = 1
+                            if (g.x_vel != 0):
+                                gdir = g.x_vel/abs(g.x_vel)
+                            speed = min(abs(g.x_vel/8), PUCKMAXSPEED)
+                            self.x_vel = self.x_vel - speed * gdir
+                        if (g.y_vel == 0):
+                            self.y_vel = -self.y_vel * 0.7
+                        else:
+                            gdir = 1
+                            if (g.y_vel != 0):
+                                gdir = g.y_vel/abs(g.y_vel)
+                            speed = min(abs(g.y_vel/8), PUCKMAXSPEED)
+                            self.y_vel = self.y_vel - speed * gdir
+                        self.x += self.x_vel
+                        self.y += self.y_vel
+                        g.can_hit = False
+                else:
+                    g.can_hit = True
+        if (self.x <= 0):
+            self.x_vel *= -0.7
+            self.x = 0
+        if (self.x + PUCKSIZE[0] >= WINSIZE[0]):
+            self.x_vel *= -0.7
+            self.x = WINSIZE[0] - PUCKSIZE[0]
+        if (self.y <= 0):
+            self.y_vel *= -0.7
+            self.y = 0
+        if (self.y + PUCKSIZE[1] >= WINSIZE[1]):
+            self.y_vel *= -0.7
+            self.y = WINSIZE[1] - PUCKSIZE[1]
+                    
+        goalrect_l = pygame.Rect(-GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
+        goalrect_r = pygame.Rect(WINSIZE[0] - GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
+        if puckrect.colliderect(goalrect_l):
+            self.score(game_objects, 0)
+        if puckrect.colliderect(goalrect_r):
+            self.score(game_objects, 1)
+    
+    def score(self, game_objects, side):
+        """
+        Handles scoring a goal
+        Side - 0 is left, 1 is right
+        """
+        self.reset_puck(side)
+        for g in game_objects:
+            if (g.type == 'Player'):
+                g.can_hit = 20
+            if (g.type == 'GameManager'):
+                g.score[side] += 1
+                if g.score[side] == MAX_SCORE:
+                    g.restart()
+        print(str(self.score))
+
     def move(self):
         """
         Moves the puck based on the direction and collision status
         """
-        self.x += self.x_vel * 1.1
-        self.y += self.y_vel * 1.1
+        self.x += self.x_vel
+        self.y += self.y_vel
 
-    def reset_puck(self):
-        self.x = 272
-        self.y = 272
+    def reset_puck(self, side):
+        self.x = 208 + (side * PUCKSIZE[0])
+        self.y = 208
         self.x_vel = 0
         self.y_vel = 0
 
@@ -245,6 +346,18 @@ class AirHockeyClient(GameClient):
         """
         super(AirHockeyClient, self).__init__(id, server_host, server_port, game_objects)
         self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
+        
+    def draw(self):
+        """
+        Draws all DrawableObjects in game_objects to the screen
+        """
+        if self.game_objects == None:
+            return
+        self.screen.blit(BG_IMG, pygame.Rect(0, 0, WINSIZE[0], WINSIZE[1]))
+        for o in self.game_objects:
+            if isinstance(o, DrawableObject):
+                o.draw(self.screen)
+        pygame.display.flip()
 
     def serialize_game_objects(self, data):
         """
@@ -276,7 +389,9 @@ class AirHockeyServer(GameServer):
             the port to bind to
         """
         super(AirHockeyServer, self).__init__(server_host, server_port)
+        self.game_objects.append(GameManager())
         self.game_objects.append(Puck())
+        self.playing = False
 
     def add_client(self, addr):
         """
@@ -316,11 +431,14 @@ class AirHockeyServer(GameServer):
             try:
                 data_dict = json.loads(data)
                 client_id = data_dict['id']
+                if (len(self.clients) > 1):
+                    self.playing = True
                 for o in self.game_objects:
                     if (o.type == 'Puck'):
                         o.server_update(self.game_objects)
                     else:
                         o.server_update(data_dict)
+
             except ValueError as e:
                 printd('Malformed packet received.')
             self.sock.sendto(bytes(json.dumps({'id': client_id, 'game_objects': game_objects_json}), encoding='utf-8'), addr)
