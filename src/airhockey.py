@@ -69,6 +69,7 @@ class Player(DrawableObject):
         data : dict
             new values for the object.
         """
+
         self.id = data['id']
         if data['id'] != self.id:
             return
@@ -146,7 +147,7 @@ class GameManager(GameObject):
         The current score
     """
 
-    def __init__(self):
+    def __init__(self, data=None):
         self.score = [0,0]
         self.type = 'GameManager'
 
@@ -161,6 +162,9 @@ class GameManager(GameObject):
             new values for the object.
         """
         self.score = data['score']
+
+    def get_score(self):
+        return str(self.score[0]) + " - " + str(self.score[1])
 
     def restart(self):
         self.score = [0,0]
@@ -247,7 +251,6 @@ class Puck(DrawableObject):
                 playerrect = pygame.Rect(g.x, g.y, PLAYERSIZE[0], PLAYERSIZE[1]) 
                 if (puckrect.colliderect(playerrect)):
                     if (g.can_hit):
-                        print(str(g.x_vel) + " " + str(g.y_vel))
                         if (g.x_vel == 0):
                             self.x_vel = -self.x_vel * 0.7
                         else:
@@ -285,9 +288,9 @@ class Puck(DrawableObject):
         goalrect_l = pygame.Rect(-GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
         goalrect_r = pygame.Rect(WINSIZE[0] - GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
         if puckrect.colliderect(goalrect_l):
-            self.score(game_objects, 0)
-        if puckrect.colliderect(goalrect_r):
             self.score(game_objects, 1)
+        if puckrect.colliderect(goalrect_r):
+            self.score(game_objects, 0)
     
     def score(self, game_objects, side):
         """
@@ -297,12 +300,11 @@ class Puck(DrawableObject):
         self.reset_puck(side)
         for g in game_objects:
             if (g.type == 'Player'):
-                g.can_hit = 20
+                g.can_hit = True
             if (g.type == 'GameManager'):
                 g.score[side] += 1
                 if g.score[side] == MAX_SCORE:
                     g.restart()
-        print(str(self.score))
 
     def move(self):
         """
@@ -344,6 +346,8 @@ class AirHockeyClient(GameClient):
         server_port : int
             the port of the server to connect to
         """
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 30)
         super(AirHockeyClient, self).__init__(id, server_host, server_port, game_objects)
         self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
         
@@ -357,6 +361,10 @@ class AirHockeyClient(GameClient):
         for o in self.game_objects:
             if isinstance(o, DrawableObject):
                 o.draw(self.screen)
+            if isinstance(o, GameManager):
+                self.font_surf = self.font.render(o.get_score(), False, (0, 0, 0))
+                self.screen.blit(self.font_surf, (272, 0))
+
         pygame.display.flip()
 
     def serialize_game_objects(self, data):
@@ -375,6 +383,8 @@ class AirHockeyClient(GameClient):
                 self.game_objects.append(Player(o))
             elif o['type'] == "Puck":
                 self.game_objects.append(Puck(o))
+            elif o['type'] == 'GameManager':
+                self.game_objects.append(GameManager(o))
 
 class AirHockeyServer(GameServer):
     def __init__(self, server_host, server_port):
