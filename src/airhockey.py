@@ -317,8 +317,11 @@ class Puck(DrawableObject):
         self.y += self.y_vel
 
     def reset_puck(self, side):
-        self.x = 208 + (side * PUCKSIZE[0])
+        self.x = 272 + PLAYERSIZE[0] * 2 
+        if (side == 1):
+            self.x = 240 - PLAYERSIZE[0]
         self.y = 208
+
         self.x_vel = 0
         self.y_vel = 0
 
