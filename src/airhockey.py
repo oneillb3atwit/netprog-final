@@ -288,7 +288,7 @@ class Puck(DrawableObject):
             self.y_vel *= -0.7
             self.y = WINSIZE[1] - PUCKSIZE[1]
                     
-        goalrect_l = pygame.Rect(-GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
+        goalrect_l = pygame.Rect(0, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
         goalrect_r = pygame.Rect(WINSIZE[0] - GOALBOUNDS[0]/2, 240 - GOALBOUNDS[1]/2, GOALBOUNDS[0], GOALBOUNDS[1])
         if puckrect.colliderect(goalrect_l):
             self.score(game_objects, 1)
