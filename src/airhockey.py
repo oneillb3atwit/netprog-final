@@ -121,13 +121,6 @@ class Player(DrawableObject):
             self.y_vel = 0
         else:
             self.y = pos[1]
-
-    def reset_pos(self):
-        if self.team == 0:
-            self.x = 0
-        else:
-            self.x = WINSIZE[0]
-        self.y = 240
     def server_update(self, data, game_objects):
         """
         Runs the game logic on the server
@@ -167,9 +160,15 @@ class GameManager(GameObject):
         self.score = data['score']
 
     def get_score(self):
+        """
+        Returns the score of the game in a string format
+        """
         return str(self.score[0]) + " - " + str(self.score[1])
 
     def restart(self):
+        """
+        Restarts the score of the game
+        """
         self.score = [0,0]
 
     def get_dict(self):
@@ -317,6 +316,9 @@ class Puck(DrawableObject):
         self.y += self.y_vel
 
     def reset_puck(self, side):
+        """
+        Resets the puck state after scoring
+        """
         self.x = 272 + PLAYERSIZE[0] * 2 
         if (side == 1):
             self.x = 240 - PLAYERSIZE[0]
