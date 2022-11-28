@@ -148,7 +148,10 @@ class GameManager(GameObject):
     """
 
     def __init__(self, data=None):
-        self.score = [0,0]
+        if data != None:
+            self.score = data['score']
+        else:
+            self.score = [0,0]
         self.type = 'GameManager'
 
     def client_update(self, data):
@@ -347,7 +350,7 @@ class AirHockeyClient(GameClient):
             the port of the server to connect to
         """
         pygame.font.init()
-        self.font = pygame.font.SysFont(None, 30)
+        self.font = pygame.font.SysFont(None, 60)
         super(AirHockeyClient, self).__init__(id, server_host, server_port, game_objects)
         self.key_filter = [ pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d ]
         
@@ -362,8 +365,8 @@ class AirHockeyClient(GameClient):
             if isinstance(o, DrawableObject):
                 o.draw(self.screen)
             if isinstance(o, GameManager):
-                self.font_surf = self.font.render(o.get_score(), False, (0, 0, 0))
-                self.screen.blit(self.font_surf, (272, 0))
+                self.font_surf = self.font.render(o.get_score(), False, (0, 0, 255))
+                self.screen.blit(self.font_surf, (280, 20))
 
         pygame.display.flip()
 
