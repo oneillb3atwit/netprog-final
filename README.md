@@ -26,8 +26,8 @@ Here is a brief overview of its components:
 
 ## Running the air hockey server
 
-`make run-server`
+`python src/airhockey.py -s`
 
 ## Running the air hockey client
 
-`make run-client`
+`python src/airhockey.py`
