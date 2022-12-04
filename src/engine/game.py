@@ -1,4 +1,4 @@
-import json, getopt, sys, pygame
+import json, getopt, sys, pygame, datetime
 
 # DEFAULTS
 HOST = 'localhost'
@@ -134,15 +134,15 @@ class DrawableObject(GameObject):
 
 def printd(s):
     """
-    Prints to stderr only if debug mode is enabled.
+    Prints to stderr.
 
     Parameters
     ----------
     s : str
         the string to print
     """
-    if debug == True:
-        print(s, file=sys.stderr)
+    time = datetime.datetime.now()
+    print(time.strftime('%Y-%m-%d %H-%M-%S') + '\t' + s, file=sys.stderr)
 
 def parse_args():
     """
@@ -153,11 +153,9 @@ def parse_args():
     dict
         a dict containing all the arguments passed or their default values.
     """
-    opts, args = getopt.getopt(sys.argv[1:], 'sdi:p:')
+    opts, args = getopt.getopt(sys.argv[1:], 'si:p:')
     ret = {'server': False, 'debug': False, 'host': HOST, 'port': PORT}
     for o, a in opts:
-        if o == '-d':
-            ret['debug'] = True
         elif o == '-i':
             ret['host'] = a
         elif o == '-p':
@@ -165,6 +163,6 @@ def parse_args():
         elif o == '-s':
             ret['server'] = True
         else:
-            print("usage: " + sys.argv[0] + " [-d] [-i IP] [-p PORT]", file=sys.stderr)
+            print("usage: " + sys.argv[0] + " [-s] [-i IP] [-p PORT]", file=sys.stderr)
             sys.exit(1)
     return ret

@@ -437,8 +437,8 @@ if 'port' in args:
     PORT = args['port']
 
 if args['server'] == True:
-    print('Starting server')
+    printd('Starting server')
     AirHockeyServer(HOST, PORT).start()
 else:
-    print('Starting client')
+    printd('Starting client')
     AirHockeyClient(0, HOST, PORT).start()
