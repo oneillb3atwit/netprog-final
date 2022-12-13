@@ -156,7 +156,7 @@ def parse_args():
     opts, args = getopt.getopt(sys.argv[1:], 'si:p:')
     ret = {'server': False, 'debug': False, 'host': HOST, 'port': PORT}
     for o, a in opts:
-        elif o == '-i':
+        if o == '-i':
             ret['host'] = a
         elif o == '-p':
             ret['port'] = a
